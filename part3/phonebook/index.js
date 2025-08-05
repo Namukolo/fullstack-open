@@ -1,15 +1,18 @@
 const express = require('express');
-// const cors = require('cors');
+const cors = require('cors');
 const morgan = require('morgan');
 
+
 morgan.token('request-data', function getRequestData(req) {
+    console.log(req.body)
     return JSON.stringify(req.body)
 })
 
 const app = express();
-// app.use(cors());
+app.use(cors());
 app.use(express.json())
 app.use(morgan(`:method :url :status :res[content-length] - :response-time ms :request-data`));
+app.use(express.static('build'));
 
 
 const persons = [
@@ -61,19 +64,49 @@ app.get('/api/persons/:id', (request, response) => {
     response.json(person);
 })
 
+// app.delete('/api/persons/:id', (request, response) => {
+//     const requestId = request.params.id;
+//     console.log('request id:: ', persons);
+
+//     persons.forEach(person => {
+//         console.log(person.id === requestId)
+//     })
+
+//     // const person = persons.find(person => Number(person.id) === Number(requestId));
+
+//     let person = persons.find((person) => person.id === requestId);
+//     person = { ...person, deleted: true }
+
+//     if (!person) {
+//         response.status(404).json({ 'message': 'person not found' }).end();
+//         return;
+//     }
+
+//     const filteredPersons = persons.filter(person => person.id !== requestId);
+
+//     response.json([filteredPersons, person]);
+// })
+
+
 app.delete('/api/persons/:id', (request, response) => {
     const requestId = request.params.id;
-    const isID = persons.find(requestId);
+    console.log('request id:: ', requestId);
 
-    if (!isID) {
-        response.status(404).end();
+    let personIndex = persons.findIndex((person) => person.id === requestId || Number(person.id) === Number(requestId));
+
+    console.log('personIndex:: ', personIndex)
+
+    if (!personIndex) {
+        response.status(404).json({ 'message': 'person not found' }).end();
+        return null;
     }
 
-    const filteredPersons = persons.filter(person => person.id !== requestId);
+    persons.splice(personIndex, 1);
 
-    response.json(filteredPersons);
+    // const filteredPersons = persons.filter(person => person.id !== requestId);
+
+    response.json(persons);
 })
-
 app.post('/api/persons', (request, response) => {
     try {
         const newPerson = request.body;
@@ -91,11 +124,11 @@ app.post('/api/persons', (request, response) => {
         }
 
         const newPersonId = Math.floor(Math.random() * 1000);
-        newPerson.id = newPersonId;
+        newPerson.id = newPersonId.toString();
 
         persons.push(newPerson);
 
-        response.status(201).json({message: 'Entry added successfully', data: newPerson});
+        response.status(201).json({ message: 'Entry added successfully', data: newPerson });
     } catch (error) {
         response.status(400).json({ error: error.message })
     }
